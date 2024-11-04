@@ -8,6 +8,7 @@ from tensorflow.keras.models import load_model
 import base64
 from keras.preprocessing import image
 import threading
+import shutil
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -20,7 +21,6 @@ os.makedirs(feedback_dir, exist_ok=True)
 # Load the model
 model = load_model("pflanz_arzt_v4.h5")
 
-# Parameters
 image_size = (150, 150)
 class_labels = [d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d))]
 
@@ -36,8 +36,15 @@ def get_class_labels(segmented_dir='segmented'):
     return class_labels
 
 def collect_feedback(image_path, predicted_label, correct_label):
+
+     # Copy the misclassified image to the feedback folder
     feedback_image_path = os.path.join(feedback_dir, os.path.basename(image_path))
-    os.rename(image_path, feedback_image_path)  # Move the misclassified image to the feedback folder
+    shutil.copy(image_path, feedback_image_path) 
+
+    #Transfer to training folder
+    data_image_path = os.path.join(data_dir, correct_label, os.path.basename(image_path))
+    os.rename(image_path, data_image_path)
+
     # Save the feedback to a CSV file for future retraining
     with open("feedback_labels.csv", "a") as f:
         f.write(f"{feedback_image_path};{correct_label}\n")  # Save path and correct label
@@ -106,10 +113,11 @@ def feedback():
     if correct_label:
         collect_feedback(image_path, predicted_class, correct_label)
 
-        update_model()
+        #update_model() -> update only on request
 
     return redirect(url_for('index'))
 
+@app.route('/update-model', methods=['GET'])
 def update_model():
     # Load feedback data
     if os.path.exists("feedback_labels.csv"):
@@ -139,7 +147,7 @@ def update_model():
         all_labels = np.concatenate((y_train_encoded, y_new_encoded))
 
         # Retrain the model
-        model.fit(all_image_paths, all_labels, epochs=3)  # Retrain with updated dataset
+        model.fit(all_image_paths, all_labels, epochs=3)  
         model.save("pflanz_arzt_v4_a.h5")
         print("Model retrained with new feedback data.")
 
@@ -155,7 +163,7 @@ def load_data(data_dir):
                     img_array = preprocess_image(img_path)  # Preprocess the image
                     image_arrays.append(img_array)  
                     labels.append(label)
-    return np.vstack(image_arrays), np.array(labels)  # Return a 4D array of images
+    return np.vstack(image_arrays), np.array(labels)  # Returns a 4D array of images
 
 if __name__ == '__main__':
     app.run(debug=True)
