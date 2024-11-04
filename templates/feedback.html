@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        header {
+            background-color: #4CAF50; /* Green header */
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        .result-box {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            background-color: #e8f5e9;
+        }
+        .result-image {
+            max-width: 300px;
+            border-radius: 8px;
+        }
+        .radio-option {
+            margin: 10px 0;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50; /* Green button */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049; /* Darker green on hover */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Pflanz Arzt Ergebnis page</h1>
+    </header>
+    <div class="result-box">
+        <img src="data:image/jpeg;base64,{{ image_path }}" alt="{{ image_path }}" class="result-image">
+        <p><strong>Predicted Class:</strong> {{ predicted_class }}</p>
+        <p><strong>Certainty:</strong> {{ (certainty * 100)|round(2) }}%</p>
+    </div>
+    <form action="/feedback" method="post">
+        <input type="hidden" name="image_path" value="{{ full_path }}">
+        <input type="hidden" name="predicted_class" value="{{ predicted_class }}">
+        <h3>Select the Correct Class:</h3>
+        {% for class_pr in class_labels %}
+            <div class="radio-option">
+                <input type="radio" id="{{ class_pr }}" name="correct_label" value="{{ class_pr }}" required/>
+                <label for="{{ class_pr }}">{{ class_pr }}</label>
+            </div>
+        {% endfor %}
+        <input type="submit" value="Submit Feedback">
+    </form>
+</body>
+</html>
